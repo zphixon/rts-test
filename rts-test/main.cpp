@@ -4,19 +4,19 @@
 #include <winuser.h>
 #include <hidusage.h>
 
-#include "RtsEventHandler.h"
+#include "MyRtsPlugin.h"
 #include "errorexit.h"
 
-RtsEventHandler* reh = NULL;
+MyRtsPlugin* rtsPlugin = NULL;
 HBRUSH green;
 HBRUSH red;
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
-	if (reh != NULL) {
-		std::cout << "x=" << reh->x << " y=" << reh->y << " p=" << reh->pressure << " s=" << reh->buttonStatus << std::endl;
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
+	if (rtsPlugin != NULL) {
+		std::cout << "x=" << rtsPlugin->x << " y=" << rtsPlugin->y << " p=" << rtsPlugin->pressure << " s=" << rtsPlugin->buttonStatus << std::endl;
 	}
 
-	switch (uMsg) {
+	switch (msg) {
 	case WM_DESTROY: {
 		PostQuitMessage(0);
 		return 0;
@@ -26,7 +26,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
 
-		if (reh->buttonStatus == RtsEventHandler::TouchStatus::Inverted) {
+		if (rtsPlugin->buttonStatus == MyRtsPlugin::TouchStatus::Inverted) {
 			FillRect(hdc, &ps.rcPaint, red);
 		}
 		else {
@@ -38,21 +38,21 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	}
 
 	case WM_KEYDOWN: {
-		if (wParam == VK_ESCAPE) {
+		if (wp == VK_ESCAPE) {
 			PostQuitMessage(0);
 			return 0;
 		}
 	}
 	}
 
-	return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+	return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
 int WINAPI WinMain(
-	HINSTANCE hInstance,
-	HINSTANCE hPrevInstance,
-	LPSTR pCmdLine,
-	int nCmdShow
+	HINSTANCE instance,
+	HINSTANCE,
+	LPSTR cmdLine,
+	int nCmd
 ) {
 	// attach console and redirect stdin/stdout/stderr because when we build
 	// with /SUBSYSTEM:WINDOWS we don't get a console window
@@ -65,17 +65,17 @@ int WINAPI WinMain(
 	freopen_s(&f, "CONOUT$", "w", stderr);
 	freopen_s(&f, "CONOUT$", "w", stdout);
 
-	const wchar_t CLASS_NAME[] = L"my window";
+	const wchar_t className[] = L"my window";
 
 	WNDCLASS wc = {};
 	wc.lpfnWndProc = WindowProc;
-	wc.hInstance = hInstance;
-	wc.lpszClassName = CLASS_NAME;
+	wc.hInstance = instance;
+	wc.lpszClassName = className;
 	RegisterClass(&wc);
 
 	HWND hwnd = CreateWindowExW(
 		0,
-		CLASS_NAME,
+		className,
 		L"my window title",
 		WS_OVERLAPPEDWINDOW, 
 		CW_USEDEFAULT,
@@ -84,7 +84,7 @@ int WINAPI WinMain(
 		CW_USEDEFAULT,
 		NULL,
 		NULL,
-		hInstance,
+		instance,
 		NULL
 	);
 
@@ -92,11 +92,11 @@ int WINAPI WinMain(
 		return 1;
 	}
 
-	reh = new RtsEventHandler(hwnd);
+	rtsPlugin = new MyRtsPlugin(hwnd);
 	red = CreateSolidBrush(RGB(255, 166, 166));
 	green = CreateSolidBrush(RGB(166, 255, 190));
 
-	ShowWindow(hwnd, nCmdShow);
+	ShowWindow(hwnd, nCmd);
 
 	MSG msg = {};
 	while (GetMessage(&msg, NULL, 0, 0)) {
@@ -104,7 +104,7 @@ int WINAPI WinMain(
 		DispatchMessageW(&msg);
 	}
 
-	reh->Release();
+	rtsPlugin->Release();
 
 	return 0;
 }

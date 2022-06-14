@@ -3,9 +3,9 @@
 #include <rtscom.h>
 #include <rtscom_i.c>
 
-class RtsEventHandler : public IStylusSyncPlugin {
+class MyRtsPlugin : public IStylusSyncPlugin {
 private:
-	void RealInit();
+	void realInit();
 
 public:
 	enum TouchStatus {
@@ -23,8 +23,8 @@ public:
 		int idxStatus;
 	};
 
-	LONG m_nRef;
-	IUnknown* m_pPunkFTMarshaller;
+	LONG refCount;
+	IUnknown* marshaler;
 
 	HWND hwnd;
 	IRealTimeStylus* rts;
@@ -34,9 +34,9 @@ public:
 	LONG buttonStatus;
 	LONG pressure;
 
-	RtsEventHandler(HWND hwnd)
-		: m_nRef(1)
-		, m_pPunkFTMarshaller(NULL)
+	MyRtsPlugin(HWND hwnd)
+		: refCount(1)
+		, marshaler(NULL)
 		, hwnd(hwnd)
 		, rts(NULL)
 		, x(-1)
@@ -44,12 +44,12 @@ public:
 		, buttonStatus(-1)
 		, pressure(-1)
 	{
-		RealInit();
+		realInit();
 	}
 
-	virtual ~RtsEventHandler() {
-		if (m_pPunkFTMarshaller != NULL)
-			m_pPunkFTMarshaller->Release();
+	virtual ~MyRtsPlugin() {
+		if (marshaler != NULL)
+			marshaler->Release();
 
 		if (rts != NULL) {
 			rts->Release();
@@ -57,8 +57,8 @@ public:
 	}
 
 	void handlePackets(
-		IRealTimeStylus* stylus,
-		const StylusInfo* si,
+		IRealTimeStylus*,
+		const StylusInfo*,
 		ULONG packetBufLen,
 		LONG* packetBuf
 	);
@@ -76,48 +76,48 @@ public:
 	}
 
 	STDMETHOD(Packets)(
-		IRealTimeStylus* pStylus,
-		const StylusInfo* pStylusInfo,
+		IRealTimeStylus*,
+		const StylusInfo*,
 		ULONG,
-		ULONG nPacketBuf,
-		LONG* pPackets,
+		ULONG packetBufLen,
+		LONG* packetBuf,
 		ULONG*,
 		LONG**
 	);
 
     STDMETHOD(InAirPackets)(
-		IRealTimeStylus* pStylus,
-		const StylusInfo* pStylusInfo,
+		IRealTimeStylus*,
+		const StylusInfo*,
 		ULONG,
-		ULONG nPacketBuf,
-		LONG* pPackets,
+		ULONG packetBufLen,
+		LONG* packetBuf,
 		ULONG*,
 		LONG**
 	);
 
 	STDMETHOD_(ULONG, AddRef)() {
-		return InterlockedIncrement(&m_nRef);
+		return InterlockedIncrement(&refCount);
 	}
 
 	STDMETHOD_(ULONG, Release)() {
-		ULONG nNewRef = InterlockedDecrement(&m_nRef);
+		ULONG nNewRef = InterlockedDecrement(&refCount);
 		if (nNewRef == 0) {
 			delete this;
 		}
 		return nNewRef;
 	}
 
-	STDMETHOD(QueryInterface)(REFIID riid, LPVOID* ppvObj) {
+	STDMETHOD(QueryInterface)(REFIID riid, LPVOID* obj) {
 		if (riid == IID_IStylusSyncPlugin || riid == IID_IUnknown) {
-			*ppvObj = this;
+			*obj = this;
 			AddRef();
 			return S_OK;
 		}
-		else if (riid == IID_IMarshal && m_pPunkFTMarshaller != NULL) {
-			return m_pPunkFTMarshaller->QueryInterface(riid, ppvObj);
+		else if (riid == IID_IMarshal && marshaler != NULL) {
+			return marshaler->QueryInterface(riid, obj);
 		}
 
-		*ppvObj = NULL;
+		*obj = NULL;
 		return E_NOINTERFACE;
 	}
 
@@ -125,8 +125,8 @@ public:
     STDMETHOD(StylusButtonDown)(IRealTimeStylus*, STYLUS_ID, const GUID*, POINT*);
 	STDMETHOD(StylusInRange)(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID);
 	STDMETHOD(StylusOutOfRange)(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID);
-    STDMETHOD(StylusDown)(IRealTimeStylus*, const StylusInfo*, ULONG, LONG* _pPackets, LONG**);
-    STDMETHOD(StylusUp)(IRealTimeStylus*, const StylusInfo*, ULONG, LONG* _pPackets, LONG**);
+    STDMETHOD(StylusDown)(IRealTimeStylus*, const StylusInfo*, ULONG, LONG*, LONG**);
+    STDMETHOD(StylusUp)(IRealTimeStylus*, const StylusInfo*, ULONG, LONG*, LONG**);
     STDMETHOD(RealTimeStylusEnabled)(IRealTimeStylus*, ULONG, const TABLET_CONTEXT_ID*);
     STDMETHOD(RealTimeStylusDisabled)(IRealTimeStylus*, ULONG, const TABLET_CONTEXT_ID*);
     STDMETHOD(SystemEvent)(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID, SYSTEM_EVENT, SYSTEM_EVENT_DATA);

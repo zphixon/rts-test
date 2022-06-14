@@ -141,12 +141,12 @@
   <ItemGroup>
     <ClCompile Include="errorexit.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="RtsEventHandler.cpp" />
+    <ClCompile Include="MyRtsPlugin.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="easytab.h" />
     <ClInclude Include="errorexit.h" />
-    <ClInclude Include="RtsEventHandler.h" />
+    <ClInclude Include="MyRtsPlugin.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

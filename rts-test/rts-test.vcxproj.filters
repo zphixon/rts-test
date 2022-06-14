@@ -18,10 +18,10 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="RtsEventHandler.cpp">
+    <ClCompile Include="errorexit.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="errorexit.cpp">
+    <ClCompile Include="MyRtsPlugin.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -29,10 +29,10 @@
     <ClInclude Include="easytab.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="RtsEventHandler.h">
+    <ClInclude Include="errorexit.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="errorexit.h">
+    <ClInclude Include="MyRtsPlugin.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

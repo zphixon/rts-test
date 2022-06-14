@@ -1,9 +1,9 @@
-#include "RtsEventHandler.h"
+#include "MyRtsPlugin.h"
 #include "errorexit.h"
 
 #include <iostream>
 
-void RtsEventHandler::RealInit() {
+void MyRtsPlugin::realInit() {
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	if (FAILED(hr)) {
 		ErrorExit(L"CoInitializeEx", hr);
@@ -19,7 +19,7 @@ void RtsEventHandler::RealInit() {
 		ErrorExit(L"put_HWND", hr);
 	}
 
-	hr = CoCreateFreeThreadedMarshaler(this, &this->m_pPunkFTMarshaller);
+	hr = CoCreateFreeThreadedMarshaler(this, &this->marshaler);
 	if (FAILED(hr)) {
 		ErrorExit(L"CoCreateFreeThreadedMarshaler", hr);
 	}
@@ -30,14 +30,14 @@ void RtsEventHandler::RealInit() {
 	}
 
 	const UINT numProps = 4;
-	GUID lWantedProps[numProps] = {
+	GUID wantedProps[numProps] = {
 		GUID_PACKETPROPERTY_GUID_X,
 		GUID_PACKETPROPERTY_GUID_Y,
 		GUID_PACKETPROPERTY_GUID_NORMAL_PRESSURE,
 		GUID_PACKETPROPERTY_GUID_PACKET_STATUS,
 	};
 
-	hr = this->rts->SetDesiredPacketDescription(numProps, lWantedProps);
+	hr = this->rts->SetDesiredPacketDescription(numProps, wantedProps);
 	if (FAILED(hr)) {
 		ErrorExit(L"SetDesiredPacketDescription", hr);
 	}
@@ -48,12 +48,12 @@ void RtsEventHandler::RealInit() {
 	}
 }
 
-void RtsEventHandler::redraw() {
+void MyRtsPlugin::redraw() {
 	InvalidateRect(this->hwnd, NULL, true);
 	UpdateWindow(this->hwnd);
 }
 
-void RtsEventHandler::readPackets(
+void MyRtsPlugin::readPackets(
 	LONG* packetBuf,
 	ULONG packetBufLen,
 	ULONG nProps,
@@ -98,7 +98,7 @@ void RtsEventHandler::readPackets(
 	}
 }
 
-void RtsEventHandler::handlePackets(
+void MyRtsPlugin::handlePackets(
 	IRealTimeStylus* stylus,
 	const StylusInfo* si,
 	ULONG packetBufLen,
@@ -135,7 +135,7 @@ void RtsEventHandler::handlePackets(
 }
 
 // the stylus is pressed to the tablet
-STDMETHODIMP RtsEventHandler::Packets(
+STDMETHODIMP MyRtsPlugin::Packets(
 	IRealTimeStylus* stylus,
 	const StylusInfo* si,
 	ULONG,
@@ -155,7 +155,7 @@ STDMETHODIMP RtsEventHandler::Packets(
 }
 
 // the stylus is hovering above the tablet
-STDMETHODIMP RtsEventHandler::InAirPackets(
+STDMETHODIMP MyRtsPlugin::InAirPackets(
 	IRealTimeStylus* stylus,
 	const StylusInfo* si,
 	ULONG,
@@ -174,58 +174,58 @@ STDMETHODIMP RtsEventHandler::InAirPackets(
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::StylusDown(IRealTimeStylus*, const StylusInfo* si, ULONG, LONG*, LONG**) {
+STDMETHODIMP MyRtsPlugin::StylusDown(IRealTimeStylus*, const StylusInfo* si, ULONG, LONG*, LONG**) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::StylusUp(IRealTimeStylus*, const StylusInfo* si, ULONG, LONG*, LONG**) {
+STDMETHODIMP MyRtsPlugin::StylusUp(IRealTimeStylus*, const StylusInfo* si, ULONG, LONG*, LONG**) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::StylusInRange(IRealTimeStylus* s, TABLET_CONTEXT_ID tcid, STYLUS_ID sid) {
+STDMETHODIMP MyRtsPlugin::StylusInRange(IRealTimeStylus* s, TABLET_CONTEXT_ID tcid, STYLUS_ID sid) {
 	return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::StylusOutOfRange(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID) {
+STDMETHODIMP MyRtsPlugin::StylusOutOfRange(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID) {
 	return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::RealTimeStylusEnabled(IRealTimeStylus*, ULONG, const TABLET_CONTEXT_ID*) {
+STDMETHODIMP MyRtsPlugin::RealTimeStylusEnabled(IRealTimeStylus*, ULONG, const TABLET_CONTEXT_ID*) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::RealTimeStylusDisabled(IRealTimeStylus*, ULONG, const TABLET_CONTEXT_ID*) {
+STDMETHODIMP MyRtsPlugin::RealTimeStylusDisabled(IRealTimeStylus*, ULONG, const TABLET_CONTEXT_ID*) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::StylusButtonDown(IRealTimeStylus*, STYLUS_ID, const GUID*, POINT*) {
+STDMETHODIMP MyRtsPlugin::StylusButtonDown(IRealTimeStylus*, STYLUS_ID, const GUID*, POINT*) {
 	return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::StylusButtonUp(IRealTimeStylus*, STYLUS_ID, const GUID*, POINT*) {
+STDMETHODIMP MyRtsPlugin::StylusButtonUp(IRealTimeStylus*, STYLUS_ID, const GUID*, POINT*) {
 	return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::SystemEvent(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID, SYSTEM_EVENT, SYSTEM_EVENT_DATA) {
+STDMETHODIMP MyRtsPlugin::SystemEvent(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID, SYSTEM_EVENT, SYSTEM_EVENT_DATA) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::TabletAdded(IRealTimeStylus*, IInkTablet*) {
+STDMETHODIMP MyRtsPlugin::TabletAdded(IRealTimeStylus*, IInkTablet*) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::TabletRemoved(IRealTimeStylus*, LONG) {
+STDMETHODIMP MyRtsPlugin::TabletRemoved(IRealTimeStylus*, LONG) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::CustomStylusDataAdded(IRealTimeStylus*, const GUID*, ULONG, const BYTE*) {
+STDMETHODIMP MyRtsPlugin::CustomStylusDataAdded(IRealTimeStylus*, const GUID*, ULONG, const BYTE*) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::Error(IRealTimeStylus*, IStylusPlugin*, RealTimeStylusDataInterest, HRESULT, LONG_PTR*) {
+STDMETHODIMP MyRtsPlugin::Error(IRealTimeStylus*, IStylusPlugin*, RealTimeStylusDataInterest, HRESULT, LONG_PTR*) {
     return S_OK;
 }
 
-STDMETHODIMP RtsEventHandler::UpdateMapping(IRealTimeStylus*) {
+STDMETHODIMP MyRtsPlugin::UpdateMapping(IRealTimeStylus*) {
     return S_OK;
 }
