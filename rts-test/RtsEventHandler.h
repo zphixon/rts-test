@@ -8,12 +8,19 @@ private:
 	void RealInit();
 
 public:
-	const static UINT MaxContexts = 4;
+	enum TouchStatus {
+		NotPresent = -1,
+		Touching = 1,
+		Inverted = 2,
+		Unused = 4,
+		Barrel = 8,
+	};
 
-	struct TabletContext {
-		TABLET_CONTEXT_ID id;
-		UINT pressure;
-		float pressure_rcp;
+	struct PacketDescription {
+		int idxX;
+		int idxY;
+		int idxPressure;
+		int idxStatus;
 	};
 
 	LONG m_nRef;
@@ -21,19 +28,21 @@ public:
 
 	HWND hwnd;
 	IRealTimeStylus* rts;
-	ULONG num_tablet_contexts;
-	TabletContext tablet_contexts[MaxContexts];
 
-	BOOL isInverted;
+	LONG x;
+	LONG y;
+	LONG buttonStatus;
+	LONG pressure;
 
 	RtsEventHandler(HWND hwnd)
 		: m_nRef(1)
 		, m_pPunkFTMarshaller(NULL)
 		, hwnd(hwnd)
 		, rts(NULL)
-		, num_tablet_contexts(0)
-		, tablet_contexts()
-		, isInverted(false)
+		, x(-1)
+		, y(-1)
+		, buttonStatus(-1)
+		, pressure(-1)
 	{
 		RealInit();
 	}
@@ -47,6 +56,18 @@ public:
 		}
 	}
 
+	void handlePackets(
+		IRealTimeStylus* stylus,
+		const StylusInfo* si,
+		ULONG packetBufLen,
+		LONG* packetBuf
+	);
+	void readPackets(
+		LONG* packetBuf,
+		ULONG packetBufLen,
+		ULONG nProps,
+		struct PacketDescription
+	);
 	void redraw();
 
 	STDMETHOD(DataInterest)(RealTimeStylusDataInterest* pEventInterest) {
@@ -57,11 +78,21 @@ public:
 	STDMETHOD(Packets)(
 		IRealTimeStylus* pStylus,
 		const StylusInfo* pStylusInfo,
-		ULONG nPackets,
+		ULONG,
 		ULONG nPacketBuf,
 		LONG* pPackets,
-		ULONG* nOutPackets,
-		LONG** ppOutPackets
+		ULONG*,
+		LONG**
+	);
+
+    STDMETHOD(InAirPackets)(
+		IRealTimeStylus* pStylus,
+		const StylusInfo* pStylusInfo,
+		ULONG,
+		ULONG nPacketBuf,
+		LONG* pPackets,
+		ULONG*,
+		LONG**
 	);
 
 	STDMETHOD_(ULONG, AddRef)() {
@@ -90,7 +121,6 @@ public:
 		return E_NOINTERFACE;
 	}
 
-
 	STDMETHOD(StylusButtonUp)(IRealTimeStylus*, STYLUS_ID, const GUID*, POINT*);
     STDMETHOD(StylusButtonDown)(IRealTimeStylus*, STYLUS_ID, const GUID*, POINT*);
 	STDMETHOD(StylusInRange)(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID);
@@ -99,7 +129,6 @@ public:
     STDMETHOD(StylusUp)(IRealTimeStylus*, const StylusInfo*, ULONG, LONG* _pPackets, LONG**);
     STDMETHOD(RealTimeStylusEnabled)(IRealTimeStylus*, ULONG, const TABLET_CONTEXT_ID*);
     STDMETHOD(RealTimeStylusDisabled)(IRealTimeStylus*, ULONG, const TABLET_CONTEXT_ID*);
-    STDMETHOD(InAirPackets)(IRealTimeStylus*, const StylusInfo*, ULONG, ULONG, LONG*, ULONG*, LONG**);
     STDMETHOD(SystemEvent)(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID, SYSTEM_EVENT, SYSTEM_EVENT_DATA);
     STDMETHOD(TabletAdded)(IRealTimeStylus*, IInkTablet*);
     STDMETHOD(TabletRemoved)(IRealTimeStylus*, LONG);

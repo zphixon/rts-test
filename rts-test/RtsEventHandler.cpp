@@ -46,137 +46,139 @@ void RtsEventHandler::RealInit() {
 	if (FAILED(hr)) {
 		ErrorExit(L"put_Enabled", hr);
 	}
-
-	TABLET_CONTEXT_ID* tabletContexts;
-	hr = this->rts->GetAllTabletContextIds(&this->num_tablet_contexts, &tabletContexts);
-	if (FAILED(hr)) {
-		ErrorExit(L"GetAllTabletContextIds", hr);
-	}
-
-	UINT tcidx = 0;
-	for (UINT i = 0; i < this->num_tablet_contexts; i++) {
-		IInkTablet* inkTablet = NULL;
-
-		hr = rts->GetTabletFromTabletContextId(tabletContexts[i], &inkTablet);
-		if (FAILED(hr)) {
-			ErrorExit(L"GetTabletFromTabletContextId", hr);
-		}
-
-		float x = 0, y = 0;
-		ULONG packet_props = 0;
-		PACKET_PROPERTY* pp;
-		hr = rts->GetPacketDescriptionData(tabletContexts[i], &x, &y, &packet_props, &pp);
-		if (FAILED(hr)) {
-			ErrorExit(L"GetPacketDescriptionData", hr);
-		}
-
-		for (UINT j = 0; j < packet_props; j++) {
-			if (pp[j].guid != GUID_PACKETPROPERTY_GUID_NORMAL_PRESSURE)
-				continue;
-
-			this->tablet_contexts[tcidx].id = tabletContexts[i];
-			this->tablet_contexts[tcidx].pressure = j;
-			this->tablet_contexts[tcidx].pressure_rcp = 1.0f / pp[j].PropertyMetrics.nLogicalMax;
-			tcidx++;
-			break;
-		}
-
-		CoTaskMemFree(pp);
-	}
-
-	std::cout << "nice" << std::endl;
 }
 
 void RtsEventHandler::redraw() {
 	InvalidateRect(this->hwnd, NULL, true);
+	UpdateWindow(this->hwnd);
 }
 
-const char* typeToName(int type) {
-	switch (type) {
-	case 0:
-		return "x";
-	case 1:
-		return "y";
-	case 2:
-		return "pressure";
-	case 3:
-		return "status";
-	default:
-		return "unknown";
-	}
-}
+void RtsEventHandler::readPackets(
+	LONG* packetBuf,
+	ULONG packetBufLen,
+	ULONG nProps,
+	struct PacketDescription pd
+) {
+	this->x = pd.idxX;
+	this->y = pd.idxY;
+	this->pressure = pd.idxPressure;
+	this->buttonStatus = pd.idxStatus;
 
-void handlePackets(LONG* packetBuf, ULONG packetBufLen, ULONG propsPerPacket) {
-	int packetType = 0;
-	for (LONG* buf = packetBuf; buf < packetBuf + packetBufLen; buf += propsPerPacket) {
-		for (int i = 0; i < propsPerPacket; i++) {
-			std::cout << typeToName(packetType) << "=" << buf[i] << " ";
-			if (packetType == 3) {
-				std::cout << std::endl;
+	for (int i = 0; i < packetBufLen; i++) {
+		LONG prop = packetBuf[i];
+		int idx = i % nProps;
+
+		// guh
+		// the mouse has x, y, no pressure, and I presume button status
+		// and since we ask for them in that order, I'm a little bit sure
+		// that we just get x, y, and button with no pressure, which makes
+		// this a little awkward
+
+		if (idx == pd.idxX) {
+			this->x = prop;
+		}
+		else if (idx == pd.idxY) {
+			this->y = prop;
+		}
+		else if (idx == pd.idxPressure) {
+			this->pressure = prop;
+		}
+		else if (idx == pd.idxStatus) {
+			bool shouldRedraw = false;
+			if (this->buttonStatus != prop) {
+				shouldRedraw = true;
 			}
 
-			packetType = (packetType + 1) % 4;
+			this->buttonStatus = prop;
+
+			if (shouldRedraw) {
+				this->redraw();
+			}
 		}
 	}
 }
 
-STDMETHODIMP RtsEventHandler::Packets(
-	IRealTimeStylus*,
+void RtsEventHandler::handlePackets(
+	IRealTimeStylus* stylus,
 	const StylusInfo* si,
-	ULONG propsPerPacket,
+	ULONG packetBufLen,
+	LONG* packetBuf
+) {
+	ULONG nProps = 0;
+	PACKET_PROPERTY* props = NULL;
+	HRESULT hr = stylus->GetPacketDescriptionData(si->tcid, NULL, NULL, &nProps, &props);
+	if (FAILED(hr)) ErrorExit(L"GetPacketDescriptionData", hr);
+
+	struct PacketDescription pd;
+	pd.idxX = -1;
+	pd.idxY = -1;
+	pd.idxStatus = -1;
+	pd.idxPressure = -1;
+
+	for (int i = 0; i < nProps; i++) {
+		if (props[i].guid == GUID_PACKETPROPERTY_GUID_X) {
+			pd.idxX = i;
+		}
+		else if (props[i].guid == GUID_PACKETPROPERTY_GUID_Y) {
+			pd.idxY = i;
+		}
+		else if (props[i].guid == GUID_PACKETPROPERTY_GUID_PACKET_STATUS) {
+			pd.idxStatus = i;
+		}
+		else if (props[i].guid == GUID_PACKETPROPERTY_GUID_NORMAL_PRESSURE) {
+			pd.idxPressure = i;
+		}
+
+	}
+
+	readPackets(packetBuf, packetBufLen, nProps, pd);
+}
+
+// the stylus is pressed to the tablet
+STDMETHODIMP RtsEventHandler::Packets(
+	IRealTimeStylus* stylus,
+	const StylusInfo* si,
+	ULONG,
 	ULONG packetBufLen,
 	LONG* packetBuf,
 	ULONG*,
 	LONG**
 ) {
-	if (this->isInverted != si->bIsInvertedCursor) {
-		std::cout << "inverted state change" << std::endl;
-		this->redraw();
-	}
+	handlePackets(
+		stylus,
+		si,
+		packetBufLen,
+		packetBuf
+	);
 
-	//handlePackets(packetBuf, packetBufLen, propsPerPacket);
-
-	this->isInverted = si->bIsInvertedCursor;
 	return S_OK;
 }
 
+// the stylus is hovering above the tablet
 STDMETHODIMP RtsEventHandler::InAirPackets(
-	IRealTimeStylus*,
+	IRealTimeStylus* stylus,
 	const StylusInfo* si,
-	ULONG propsPerPacket,
+	ULONG,
 	ULONG packetBufLen,
 	LONG* packetBuf,
 	ULONG*,
 	LONG**
 ) {
-	if (this->isInverted != si->bIsInvertedCursor) {
-		std::cout << "inverted state change" << std::endl;
-		this->redraw();
-	}
+	handlePackets(
+		stylus,
+		si,
+		packetBufLen,
+		packetBuf
+	);
 
-	//handlePackets(packetBuf, packetBufLen, propsPerPacket);
-
-	this->isInverted = si->bIsInvertedCursor;
     return S_OK;
 }
 
 STDMETHODIMP RtsEventHandler::StylusDown(IRealTimeStylus*, const StylusInfo* si, ULONG, LONG*, LONG**) {
-	if (this->isInverted != si->bIsInvertedCursor) {
-		std::cout << "inverted state change" << std::endl;
-		this->redraw();
-	}
-
-	this->isInverted = si->bIsInvertedCursor;
     return S_OK;
 }
 
 STDMETHODIMP RtsEventHandler::StylusUp(IRealTimeStylus*, const StylusInfo* si, ULONG, LONG*, LONG**) {
-	if (this->isInverted != si->bIsInvertedCursor) {
-		std::cout << "inverted state change" << std::endl;
-		this->redraw();
-	}
-
-	this->isInverted = si->bIsInvertedCursor;
     return S_OK;
 }
 

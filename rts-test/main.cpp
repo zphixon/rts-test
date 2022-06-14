@@ -12,6 +12,10 @@ HBRUSH green;
 HBRUSH red;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) {
+	if (reh != NULL) {
+		std::cout << "x=" << reh->x << " y=" << reh->y << " p=" << reh->pressure << " s=" << reh->buttonStatus << std::endl;
+	}
+
 	switch (uMsg) {
 	case WM_DESTROY: {
 		PostQuitMessage(0);
@@ -22,7 +26,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
 
-		if (reh->isInverted) {
+		if (reh->buttonStatus == RtsEventHandler::TouchStatus::Inverted) {
 			FillRect(hdc, &ps.rcPaint, red);
 		}
 		else {
@@ -44,68 +48,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam) 
 	return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 }
 
-LPCSTR deviceTypeStr(DWORD type) {
-	switch (type) {
-	case RIM_TYPEHID:
-		return "hid";
-	case RIM_TYPEKEYBOARD:
-		return "kb";
-	case RIM_TYPEMOUSE:
-		return "mouse";
-	default:
-		return "unknown";
-	}
-}
-
-void enumerateRawDevices() {
-	UINT nDevices = 0;
-	UINT succ = GetRawInputDeviceList(NULL, &nDevices, sizeof(RAWINPUTDEVICELIST));
-	if (succ == (UINT)-1) {
-		ErrorExit(L"get num devices");
-	}
-
-	PRAWINPUTDEVICELIST deviceList = (PRAWINPUTDEVICELIST)calloc(nDevices, sizeof(RAWINPUTDEVICELIST));
-	if (deviceList == NULL) {
-		ErrorExit(L"alloc device list");
-	}
-
-	succ = GetRawInputDeviceList(deviceList, &nDevices, sizeof(RAWINPUTDEVICELIST));
-	if (succ == (UINT)-1) {
-		ErrorExit(L"get devices");
-	}
-	std::cout << "got " << nDevices << " devices" << std::endl;
-
-	for (UINT i = 0; i < succ; i++) {
-		UINT size = 0;
-		UINT succ = GetRawInputDeviceInfo(deviceList[i].hDevice, RIDI_DEVICENAME, NULL, &size);
-		if (succ != 0) {
-			ErrorExit(L"device name string length");
-		}
-
-		LPWSTR name = (LPWSTR)calloc(size, sizeof(WCHAR));
-		if (name == NULL) {
-			ErrorExit(L"alloc device name");
-		}
-
-		succ = GetRawInputDeviceInfo(deviceList[i].hDevice, RIDI_DEVICENAME, (LPVOID)name, &size);
-		if (succ <= 0) {
-			ErrorExit(L"device name");
-		}
-
-		std::cout << deviceTypeStr(deviceList[i].dwType) << " ";
-		std::wcout << std::wstring(name) << std::endl;
-	}
-}
-
 int WINAPI WinMain(
 	HINSTANCE hInstance,
 	HINSTANCE hPrevInstance,
 	LPSTR pCmdLine,
 	int nCmdShow
 ) {
-	//
-	// attach console
-	//
+	// attach console and redirect stdin/stdout/stderr because when we build
+	// with /SUBSYSTEM:WINDOWS we don't get a console window
 	if (!AllocConsole()) {
 		ErrorExit(L"alloc console");
 	}
@@ -114,39 +64,6 @@ int WINAPI WinMain(
 	freopen_s(&f, "CONIN$", "w", stdin);
 	freopen_s(&f, "CONOUT$", "w", stderr);
 	freopen_s(&f, "CONOUT$", "w", stdout);
-
-	enumerateRawDevices();
-
-	// 
-	// register for raw input messages
-	//
-
-	RAWINPUTDEVICE rid[2];
-	// mouse
-	rid[0].usUsagePage = 0x01;
-	rid[0].usUsage = 0x02;
-	rid[0].dwFlags = 0;
-	rid[0].hwndTarget = 0;
-	// keyboard
-	rid[1].usUsagePage = 0x01;
-	rid[1].usUsage = 0x06;
-	rid[1].dwFlags = 0;
-	rid[1].hwndTarget = 0;
-	if (RegisterRawInputDevices(rid, 2, sizeof(RAWINPUTDEVICE)) == FALSE) {
-		ErrorExit(L"register devices");
-	}
-
-	//
-	// get the information of registered devices
-	//
-
-	UINT nDevices = 0;
-	UINT succ = GetRegisteredRawInputDevices(NULL, &nDevices, sizeof(RAWINPUTDEVICE));
-	if (succ == (UINT)-1) {
-		ErrorExit(L"get num reg devices");
-	}
-
-	std::cout << succ << " registered devices" << std::endl;
 
 	const wchar_t CLASS_NAME[] = L"my window";
 
@@ -159,7 +76,7 @@ int WINAPI WinMain(
 	HWND hwnd = CreateWindowExW(
 		0,
 		CLASS_NAME,
-		L"my window title uwu",
+		L"my window title",
 		WS_OVERLAPPEDWINDOW, 
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
