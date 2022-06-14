@@ -5,30 +5,23 @@
 
 void MyRtsPlugin::realInit() {
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
-	if (FAILED(hr)) {
-		ErrorExit(L"CoInitializeEx", hr);
-	}
+	if (FAILED(hr)) ErrorExit(L"CoInitializeEx", hr);
 
 	hr = CoCreateInstance(CLSID_RealTimeStylus, NULL, CLSCTX_ALL, IID_PPV_ARGS(&this->rts));
-	if (FAILED(hr)) {
-		ErrorExit(L"CoCreateInstance", hr);
-	}
+	if (FAILED(hr)) ErrorExit(L"CoCreateInstance", hr);
 
 	hr = this->rts->put_HWND((HANDLE_PTR)this->hwnd);
-	if (FAILED(hr)) {
-		ErrorExit(L"put_HWND", hr);
-	}
+	if (FAILED(hr)) ErrorExit(L"put_HWND", hr);
 
+	// "Plugins must aggregate the free threaded marshaler and must not be single threaded apartment objects."
+	// https://docs.microsoft.com/en-us/windows/win32/api/rtscom/nf-rtscom-irealtimestylus-addstylussyncplugin
 	hr = CoCreateFreeThreadedMarshaler(this, &this->marshaler);
-	if (FAILED(hr)) {
-		ErrorExit(L"CoCreateFreeThreadedMarshaler", hr);
-	}
+	if (FAILED(hr))	ErrorExit(L"CoCreateFreeThreadedMarshaler", hr);
 
 	hr = this->rts->AddStylusSyncPlugin(0, this);
-	if (FAILED(hr)) {
-		ErrorExit(L"AddStylusSyncPlugin", hr);
-	}
+	if (FAILED(hr)) ErrorExit(L"AddStylusSyncPlugin", hr);
 
+	// https://docs.microsoft.com/en-us/windows/win32/tablet/packetpropertyguids-constants
 	const UINT numProps = 4;
 	GUID wantedProps[numProps] = {
 		GUID_PACKETPROPERTY_GUID_X,
@@ -38,14 +31,10 @@ void MyRtsPlugin::realInit() {
 	};
 
 	hr = this->rts->SetDesiredPacketDescription(numProps, wantedProps);
-	if (FAILED(hr)) {
-		ErrorExit(L"SetDesiredPacketDescription", hr);
-	}
+	if (FAILED(hr)) ErrorExit(L"SetDesiredPacketDescription", hr);
 
 	hr = this->rts->put_Enabled(true);
-	if (FAILED(hr)) {
-		ErrorExit(L"put_Enabled", hr);
-	}
+	if (FAILED(hr)) ErrorExit(L"put_Enabled", hr);
 }
 
 void MyRtsPlugin::redraw() {
@@ -59,6 +48,7 @@ void MyRtsPlugin::readPackets(
 	ULONG nProps,
 	struct PacketDescription pd
 ) {
+	// the fields of pd are -1 if the packet does not contain that info
 	this->x = pd.idxX;
 	this->y = pd.idxY;
 	this->pressure = pd.idxPressure;
@@ -89,6 +79,7 @@ void MyRtsPlugin::readPackets(
 				shouldRedraw = true;
 			}
 
+			// set the new button status *before* redrawing
 			this->buttonStatus = prop;
 
 			if (shouldRedraw) {
@@ -128,7 +119,6 @@ void MyRtsPlugin::handlePackets(
 		else if (props[i].guid == GUID_PACKETPROPERTY_GUID_NORMAL_PRESSURE) {
 			pd.idxPressure = i;
 		}
-
 	}
 
 	readPackets(packetBuf, packetBufLen, nProps, pd);
@@ -164,6 +154,8 @@ STDMETHODIMP MyRtsPlugin::InAirPackets(
 	ULONG*,
 	LONG**
 ) {
+	// in our case, having these methods split is redundant since we ask for
+	// the button status anyway, which contains that information
 	handlePackets(
 		stylus,
 		si,
@@ -174,15 +166,15 @@ STDMETHODIMP MyRtsPlugin::InAirPackets(
     return S_OK;
 }
 
-STDMETHODIMP MyRtsPlugin::StylusDown(IRealTimeStylus*, const StylusInfo* si, ULONG, LONG*, LONG**) {
+STDMETHODIMP MyRtsPlugin::StylusDown(IRealTimeStylus*, const StylusInfo*, ULONG, LONG*, LONG**) {
     return S_OK;
 }
 
-STDMETHODIMP MyRtsPlugin::StylusUp(IRealTimeStylus*, const StylusInfo* si, ULONG, LONG*, LONG**) {
+STDMETHODIMP MyRtsPlugin::StylusUp(IRealTimeStylus*, const StylusInfo*, ULONG, LONG*, LONG**) {
     return S_OK;
 }
 
-STDMETHODIMP MyRtsPlugin::StylusInRange(IRealTimeStylus* s, TABLET_CONTEXT_ID tcid, STYLUS_ID sid) {
+STDMETHODIMP MyRtsPlugin::StylusInRange(IRealTimeStylus*, TABLET_CONTEXT_ID, STYLUS_ID) {
 	return S_OK;
 }
 

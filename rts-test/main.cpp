@@ -8,12 +8,13 @@
 #include "errorexit.h"
 
 MyRtsPlugin* rtsPlugin = NULL;
-HBRUSH green;
-HBRUSH red;
+HBRUSH green = CreateSolidBrush(RGB(166, 255, 190));
+HBRUSH red = CreateSolidBrush(RGB(255, 166, 166));
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 	if (rtsPlugin != NULL) {
-		std::cout << "x=" << rtsPlugin->x << " y=" << rtsPlugin->y << " p=" << rtsPlugin->pressure << " s=" << rtsPlugin->buttonStatus << std::endl;
+		std::cout << "x=" << rtsPlugin->x << " y=" << rtsPlugin->y
+			<< " p=" << rtsPlugin->pressure << " s=" << rtsPlugin->buttonStatus << std::endl;
 	}
 
 	switch (msg) {
@@ -26,7 +27,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
 
-		if (rtsPlugin->buttonStatus == MyRtsPlugin::TouchStatus::Inverted) {
+		if (rtsPlugin != NULL && rtsPlugin->buttonStatus == MyRtsPlugin::TouchStatus::Inverted) {
 			FillRect(hdc, &ps.rcPaint, red);
 		}
 		else {
@@ -56,9 +57,7 @@ int WINAPI WinMain(
 ) {
 	// attach console and redirect stdin/stdout/stderr because when we build
 	// with /SUBSYSTEM:WINDOWS we don't get a console window
-	if (!AllocConsole()) {
-		ErrorExit(L"alloc console");
-	}
+	if (!AllocConsole()) ErrorExit(L"AllocConsole");
 
 	FILE* f = NULL; // this is gross
 	freopen_s(&f, "CONIN$", "w", stdin);
@@ -88,13 +87,9 @@ int WINAPI WinMain(
 		NULL
 	);
 
-	if (hwnd == NULL) {
-		return 1;
-	}
+	if (hwnd == NULL) ErrorExit(L"CreateWindowExW");
 
 	rtsPlugin = new MyRtsPlugin(hwnd);
-	red = CreateSolidBrush(RGB(255, 166, 166));
-	green = CreateSolidBrush(RGB(166, 255, 190));
 
 	ShowWindow(hwnd, nCmd);
 
