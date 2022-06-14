@@ -24,14 +24,25 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 	}
 
 	case WM_PAINT: {
+		if (rtsPlugin == NULL)
+			break;
+
 		PAINTSTRUCT ps;
 		HDC hdc = BeginPaint(hwnd, &ps);
 
-		if (rtsPlugin != NULL && rtsPlugin->buttonStatus == MyRtsPlugin::TouchStatus::Inverted) {
-			FillRect(hdc, &ps.rcPaint, red);
+		if (rtsPlugin->pressure > 0) {
+			// TODO get from GetPacketDescriptionData PACKET_PROPERTY PROPERTY_METRICS
+			LONG max = 8191;
+			byte mini = rtsPlugin->pressure * 255 / max;
+			FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(mini, mini, mini)));
 		}
 		else {
-			FillRect(hdc, &ps.rcPaint, green);
+			if (rtsPlugin->buttonStatus == MyRtsPlugin::TouchStatus::Inverted) {
+				FillRect(hdc, &ps.rcPaint, red);
+			}
+			else {
+				FillRect(hdc, &ps.rcPaint, green);
+			}
 		}
 
 		EndPaint(hwnd, &ps);

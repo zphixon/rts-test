@@ -48,12 +48,6 @@ void MyRtsPlugin::readPackets(
 	ULONG nProps,
 	struct PacketDescription pd
 ) {
-	// the fields of pd are -1 if the packet does not contain that info
-	this->x = pd.idxX;
-	this->y = pd.idxY;
-	this->pressure = pd.idxPressure;
-	this->buttonStatus = pd.idxStatus;
-
 	for (int i = 0; i < packetBufLen; i++) {
 		LONG prop = packetBuf[i];
 		int idx = i % nProps;
@@ -64,6 +58,8 @@ void MyRtsPlugin::readPackets(
 		// that we just get x, y, and button with no pressure, which makes
 		// this a little awkward
 
+		bool shouldRedraw = false;
+
 		if (idx == pd.idxX) {
 			this->x = prop;
 		}
@@ -71,20 +67,17 @@ void MyRtsPlugin::readPackets(
 			this->y = prop;
 		}
 		else if (idx == pd.idxPressure) {
+			if (this->pressure != prop) shouldRedraw = true;
 			this->pressure = prop;
 		}
 		else if (idx == pd.idxStatus) {
-			bool shouldRedraw = false;
-			if (this->buttonStatus != prop) {
-				shouldRedraw = true;
-			}
-
-			// set the new button status *before* redrawing
+			if (this->buttonStatus != prop) shouldRedraw = true;
 			this->buttonStatus = prop;
+		}
 
-			if (shouldRedraw) {
-				this->redraw();
-			}
+		// set the new properties *before* redrawing
+		if (shouldRedraw) {
+			this->redraw();
 		}
 	}
 }
