@@ -7,6 +7,11 @@ void MyRtsPlugin::realInit() {
 	HRESULT hr = CoInitializeEx(NULL, COINIT_MULTITHREADED);
 	if (FAILED(hr)) ErrorExit(L"CoInitializeEx", hr);
 
+	WCHAR* s;
+	hr = StringFromCLSID(CLSID_RealTimeStylus, &s);
+	if (FAILED(hr)) ErrorExit(L"StringFromCLSID", hr);
+	std::wcout << L"CLSID_RealTimeStylus = " << s << std::endl;
+
 	hr = CoCreateInstance(CLSID_RealTimeStylus, NULL, CLSCTX_ALL, IID_PPV_ARGS(&this->rts));
 	if (FAILED(hr)) ErrorExit(L"CoCreateInstance", hr);
 
@@ -29,6 +34,12 @@ void MyRtsPlugin::realInit() {
 		GUID_PACKETPROPERTY_GUID_NORMAL_PRESSURE,
 		GUID_PACKETPROPERTY_GUID_PACKET_STATUS,
 	};
+
+	for (int i = 0; i < numProps; i++) {
+		hr = StringFromCLSID(wantedProps[i], &s);
+		if (FAILED(hr)) ErrorExit(L"StringFromCLSID", hr);
+		std::wcout << L"property " << i << L" = " << s << std::endl;
+	}
 
 	hr = this->rts->SetDesiredPacketDescription(numProps, wantedProps);
 	if (FAILED(hr)) ErrorExit(L"SetDesiredPacketDescription", hr);

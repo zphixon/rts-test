@@ -10,9 +10,10 @@
 MyRtsPlugin* rtsPlugin = NULL;
 HBRUSH green = CreateSolidBrush(RGB(166, 255, 190));
 HBRUSH red = CreateSolidBrush(RGB(255, 166, 166));
+bool shouldPrint = false;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
-	if (rtsPlugin != NULL) {
+	if (rtsPlugin != NULL && shouldPrint) {
 		std::cout << "x=" << rtsPlugin->x << " y=" << rtsPlugin->y
 			<< " p=" << rtsPlugin->pressure << " s=" << rtsPlugin->buttonStatus << std::endl;
 	}
@@ -53,6 +54,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 		if (wp == VK_ESCAPE) {
 			PostQuitMessage(0);
 			return 0;
+		}
+		if (wp == 0x50) { // P
+			shouldPrint = !shouldPrint;
 		}
 	}
 	}
