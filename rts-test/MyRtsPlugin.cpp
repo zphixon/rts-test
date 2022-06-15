@@ -18,13 +18,8 @@ void MyRtsPlugin::realInit() {
 	hr = this->rts->put_HWND((HANDLE_PTR)this->hwnd);
 	if (FAILED(hr)) ErrorExit(L"put_HWND", hr);
 
-	// "Plugins must aggregate the free threaded marshaler and must not be single threaded apartment objects."
-	// https://docs.microsoft.com/en-us/windows/win32/api/rtscom/nf-rtscom-irealtimestylus-addstylussyncplugin
-	hr = CoCreateFreeThreadedMarshaler(this, &this->marshaler);
-	if (FAILED(hr))	ErrorExit(L"CoCreateFreeThreadedMarshaler", hr);
-
-	hr = this->rts->AddStylusSyncPlugin(0, this);
-	if (FAILED(hr)) ErrorExit(L"AddStylusSyncPlugin", hr);
+	hr = this->rts->AddStylusAsyncPlugin(0, (IStylusAsyncPlugin*)this);
+	if (FAILED(hr)) ErrorExit(L"AddStylusAsyncPlugin", hr);
 
 	// https://docs.microsoft.com/en-us/windows/win32/tablet/packetpropertyguids-constants
 	const UINT numProps = 4;

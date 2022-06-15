@@ -3,7 +3,7 @@
 #include <rtscom.h>
 #include <rtscom_i.c>
 
-class MyRtsPlugin : public IStylusSyncPlugin {
+class MyRtsPlugin : public IStylusPlugin {
 private:
 	void realInit();
 
@@ -24,7 +24,6 @@ public:
 	};
 
 	LONG refCount;
-	IUnknown* marshaler;
 
 	HWND hwnd;
 	IRealTimeStylus* rts;
@@ -36,7 +35,6 @@ public:
 
 	MyRtsPlugin(HWND hwnd)
 		: refCount(1)
-		, marshaler(NULL)
 		, hwnd(hwnd)
 		, rts(NULL)
 		, x(-1)
@@ -48,9 +46,6 @@ public:
 	}
 
 	virtual ~MyRtsPlugin() {
-		if (marshaler != NULL)
-			marshaler->Release();
-
 		if (rts != NULL) {
 			rts->Release();
 		}
@@ -108,13 +103,10 @@ public:
 	}
 
 	STDMETHOD(QueryInterface)(REFIID riid, LPVOID* obj) {
-		if (riid == IID_IStylusSyncPlugin || riid == IID_IUnknown) {
+		if (riid == IID_IStylusAsyncPlugin || riid == IID_IUnknown) {
 			*obj = this;
 			AddRef();
 			return S_OK;
-		}
-		else if (riid == IID_IMarshal && marshaler != NULL) {
-			return marshaler->QueryInterface(riid, obj);
 		}
 
 		*obj = NULL;

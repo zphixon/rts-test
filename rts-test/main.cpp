@@ -10,6 +10,7 @@
 MyRtsPlugin* rtsPlugin = NULL;
 HBRUSH green = CreateSolidBrush(RGB(166, 255, 190));
 HBRUSH red = CreateSolidBrush(RGB(255, 166, 166));
+HBRUSH grey[255];
 bool shouldPrint = false;
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
@@ -34,8 +35,8 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 		if (rtsPlugin->pressure > 0) {
 			// TODO get from GetPacketDescriptionData PACKET_PROPERTY PROPERTY_METRICS
 			LONG max = 8191;
-			byte mini = rtsPlugin->pressure * 255 / max;
-			FillRect(hdc, &ps.rcPaint, CreateSolidBrush(RGB(mini, mini, mini)));
+			byte greyValue = rtsPlugin->pressure * 255 / max;
+			FillRect(hdc, &ps.rcPaint, grey[greyValue - 1]);
 		}
 		else {
 			if (rtsPlugin->buttonStatus == MyRtsPlugin::TouchStatus::Inverted) {
@@ -105,6 +106,10 @@ int WINAPI WinMain(
 	if (hwnd == NULL) ErrorExit(L"CreateWindowExW");
 
 	rtsPlugin = new MyRtsPlugin(hwnd);
+
+	for (int i = 0; i < 255; i++) {
+		grey[i] = CreateSolidBrush(RGB(i, i, i));
+	}
 
 	ShowWindow(hwnd, nCmd);
 
