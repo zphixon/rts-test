@@ -1,20 +1,27 @@
+#include <iostream>
 #include <sstream>
 #include <Windows.h>
 
-void ErrorExit(wchar_t const* lpszFunction, HRESULT hr) {
+[[noreturn]] void ErrorExit(wchar_t const* lpszFunction, HRESULT hr) {
     // Retrieve the system error message for the last-error code
 
-    LPWSTR lpMsgBuf;
+    LPWSTR lpMsgBuf = NULL;
 
-    FormatMessageW(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-        FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
+    DWORD succ = FormatMessageW(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
         NULL,
         hr,
         MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPWSTR) &lpMsgBuf,
-        0, NULL);
+        0,
+        NULL
+    );
+
+    if (succ == 0 || lpMsgBuf == NULL) {
+        std::cout << "could not format string :( " << std::hex << hr << std::dec << std::endl;
+        system("pause");
+        ExitProcess(hr);
+    }
 
 	std::wstringstream ss;
 	ss << "" << lpszFunction << L" failed:\r\n" << "0x" << std::hex << hr << std::dec << L" " << lpMsgBuf;
@@ -26,6 +33,6 @@ void ErrorExit(wchar_t const* lpszFunction, HRESULT hr) {
     ExitProcess(hr); 
 }
 
-void ErrorExit(wchar_t const* lpszFunction) {
+[[noreturn]] void ErrorExit(wchar_t const* lpszFunction) {
     ErrorExit(lpszFunction, GetLastError());
 }

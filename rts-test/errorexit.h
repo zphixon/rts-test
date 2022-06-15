@@ -1,4 +1,4 @@
 #pragma once
 
-void ErrorExit(wchar_t const*);
-void ErrorExit(wchar_t const*, HRESULT);
+[[noreturn]] void ErrorExit(wchar_t const*);
+[[noreturn]] void ErrorExit(wchar_t const*, HRESULT);

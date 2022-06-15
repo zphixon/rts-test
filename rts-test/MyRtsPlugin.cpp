@@ -54,7 +54,7 @@ void MyRtsPlugin::readPackets(
 	ULONG nProps,
 	struct PacketDescription pd
 ) {
-	for (int i = 0; i < packetBufLen; i++) {
+	for (UINT i = 0; i < packetBufLen; i++) {
 		LONG prop = packetBuf[i];
 		int idx = i % nProps;
 
@@ -98,14 +98,11 @@ void MyRtsPlugin::handlePackets(
 	PACKET_PROPERTY* props = NULL;
 	HRESULT hr = stylus->GetPacketDescriptionData(si->tcid, NULL, NULL, &nProps, &props);
 	if (FAILED(hr)) ErrorExit(L"GetPacketDescriptionData", hr);
+	if (props == NULL) ErrorExit(L"GetPacketDescriptionData", hr);
 
-	struct PacketDescription pd;
-	pd.idxX = -1;
-	pd.idxY = -1;
-	pd.idxStatus = -1;
-	pd.idxPressure = -1;
+	struct PacketDescription pd = {-1, -1, -1, -1};
 
-	for (int i = 0; i < nProps; i++) {
+	for (UINT i = 0; i < nProps; i++) {
 		if (props[i].guid == GUID_PACKETPROPERTY_GUID_X) {
 			pd.idxX = i;
 		}

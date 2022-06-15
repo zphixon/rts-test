@@ -35,7 +35,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 		if (rtsPlugin->pressure > 0) {
 			// TODO get from GetPacketDescriptionData PACKET_PROPERTY PROPERTY_METRICS
 			LONG max = 8191;
-			byte greyValue = rtsPlugin->pressure * 255 / max;
+			byte greyValue = (byte)((rtsPlugin->pressure * 255l) / max);
 			FillRect(hdc, &ps.rcPaint, grey[greyValue - 1]);
 		}
 		else {
@@ -66,10 +66,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
 }
 
 int WINAPI WinMain(
-	HINSTANCE instance,
-	HINSTANCE,
-	LPSTR cmdLine,
-	int nCmd
+	_In_ HINSTANCE instance,
+	_In_opt_ HINSTANCE,
+	_In_ LPSTR cmdLine,
+	_In_ int nCmd
 ) {
 	// attach console and redirect stdin/stdout/stderr because when we build
 	// with /SUBSYSTEM:WINDOWS we don't get a console window
