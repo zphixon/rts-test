@@ -1,6 +1,6 @@
-# RealTimeStylus StylusSyncPlugin
+# RealTimeStylus StylusAsyncPlugin
 
-This project implements the IStylusSyncPlugin interface to subscribe to
+This project implements the IStylusAsyncPlugin interface to subscribe to
 RealTimeStylus events. Inspired by the SDL-based demo from
 https://backworlds.com/under-pressure/
 
