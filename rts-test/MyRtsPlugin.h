@@ -3,7 +3,7 @@
 #include <rtscom.h>
 #include <rtscom_i.c>
 
-class MyRtsPlugin : public IStylusPlugin {
+class MyRtsPlugin : public IStylusAsyncPlugin {
 private:
 	void realInit();
 
@@ -102,9 +102,9 @@ public:
 		return nNewRef;
 	}
 
-	STDMETHOD(QueryInterface)(REFIID riid, LPVOID* obj) {
+	STDMETHOD(QueryInterface)(REFIID riid, void** obj) {
 		if (riid == IID_IStylusAsyncPlugin || riid == IID_IUnknown) {
-			*obj = this;
+			*obj = (void*)this;
 			AddRef();
 			return S_OK;
 		}

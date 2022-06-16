@@ -18,7 +18,11 @@ void MyRtsPlugin::realInit() {
 	hr = this->rts->put_HWND((HANDLE_PTR)this->hwnd);
 	if (FAILED(hr)) ErrorExit(L"put_HWND", hr);
 
-	hr = this->rts->AddStylusAsyncPlugin(0, (IStylusAsyncPlugin*)this);
+	IStylusAsyncPlugin* plugin = NULL;
+	hr = this->QueryInterface(IID_IStylusAsyncPlugin, (void**)&plugin);
+	if (FAILED(hr)) ErrorExit(L"QueryInterface", hr);
+
+	hr = this->rts->AddStylusAsyncPlugin(0, plugin);
 	if (FAILED(hr)) ErrorExit(L"AddStylusAsyncPlugin", hr);
 
 	// https://docs.microsoft.com/en-us/windows/win32/tablet/packetpropertyguids-constants
